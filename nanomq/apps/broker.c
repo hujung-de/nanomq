@@ -15,7 +15,7 @@
 #include <unistd.h>
 
 #include <conf.h>
-#include <hash.h>
+#include <hash_table.h>
 #include <mqtt_db.h>
 #include <nng.h>
 #include <nng/mqtt/mqtt_client.h>
@@ -270,8 +270,8 @@ server_cb(void *arg)
 				    work->pid.id, work->db);
 			}
 			// free client ctx
-			if (check_id(work->pid.id)) {
-				topic_queue *tq = get_topic(work->pid.id);
+			if (dbhash_check_id(work->pid.id)) {
+				topic_queue *tq = dbhash_get_topic_queue(work->pid.id);
 				while (tq) {
 					if (tq->topic) {
 						cli_ctx = dbtree_delete_client(
@@ -281,7 +281,7 @@ server_cb(void *arg)
 					del_sub_ctx(cli_ctx, tq->topic);
 					tq = tq->next;
 				}
-				del_topic_all(work->pid.id);
+				dbhash_del_topic_queue(work->pid.id);
 			} else {
 				debug_msg("ERROR it should not happen");
 			}
@@ -338,8 +338,8 @@ server_cb(void *arg)
 			    (reason = encode_suback_message(smsg, work)) !=
 			        SUCCESS) {
 				debug_msg("ERROR: sub_handler: [%d]", reason);
-				if (check_id(work->pid.id)) {
-					del_topic_all(work->pid.id);
+				if (dbhash_check_id(work->pid.id)) {
+					dbhash_del_topic_queue(work->pid.id);
 				}
 			} else {
 				// success but check info
